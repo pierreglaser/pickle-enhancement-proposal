@@ -67,7 +67,7 @@ test_attrgetter_                             |CL|        |N|     |TODO|   c8d3bb
 test_interactively_defined_function_         |F|         |K|     |DONE|   28a15b8_
 test_submodule_closure_                      |F|         |K|     |DONE|   938fc0d_  gh-80_
 test_recursive_closure_                      |F|         |K|     |DONE|   da4dd39_
-test_empty_cell_preserved_                   |F|         |K|     |TODO|   2f4c07d_
+test_empty_cell_preserved_                   |F|         |K|     |DONE|   2f4c07d_
 test_wraps_preserves_function_name_          |F|         |K|     |TODO|   33c9381_  gh-183_
 test_correct_globals_import_                 |F|         |K|     |TODO|   5c781be_  gh-204_
 test_wraps_preserves_function_annotations_   |F|         |K|     |TODO|   6d03ffe_  gh-177_
