@@ -147,11 +147,19 @@ all of the objects above.
 * the latter is adressed by adding ``save_cell`` and ``save_code`` to the
   ``Pickler``'s methods
 
+In relation with cell saving, cellobjects now have a constructor.
+
 In addition, we modify the current ``save_function`` function to detect if a
 function is dynamic, nested, or lambda. Finally, we implement a function to
 serialize those types a function (``save_function_tuple``).
 
-Finally, several helper functions are added to collect the attributes of the
+The global namespace of the two pickle modules are populated with extra
+functions, that are called at unpickling time to re-create the dynamic
+functions: ``make_skel_func`` and ``fill_function``. Other functions are
+created in ``pickle`` (``walk_global_ops``). In ``_pickle``, other functions
+are declared but not exposed to the python user.
+
+Finally, several helper functions are added to collect the attributes of the.
 functions necessary to recreate it (``closure``, ``globals``...)
 
 Discussion
@@ -193,9 +201,29 @@ Alternative
 +++++++++++
 
 Instead, it is also possible to stick to the current ``cloudpickle``
-implementation, where ``save_global`` includes conditional statements to spot
-such types and implement custom pickling techinques that to not rely on
-module attribute lookup.
+implementation, where by adding hooks to ``save_type`` includes hookconditional
+statements to spot such types and implement custom pickling techinques that to
+not rely on module attribute lookup.
+
+--------------------------
+Addition of ``PyCell_New``
+--------------------------
+
+``cell`` objects now implement a public constructor. This was done to avoid
+more hacky ways to create cells (by creating a function with a non empty
+closure, and returning the first item of it's ``__closure__`` attribute). On
+the other side, this does not like something the user should or would like
+to do.
+
+Alternative
++++++++++++
+Going back to the hacky way of creating new cells.
+
+
+----------------------------------
+Exposing new functions to the user
+----------------------------------
+
 
 ------------------------
 ``__closure__`` handling
@@ -237,11 +265,31 @@ This limitation leads to some hacky workarounds, where first, a tuple of empty
 set during ``fill_function``
 
 
+
 Alternative
 +++++++++++
 
 The alternative would be to accept the construction of functions with malformed
 closures, and to make the closure attribute writeable.
+
+
+------------------------------------------------------
+Implementation of the ``allow_dynamic_objects`` switch
+------------------------------------------------------
+
+This functionality allows external functions (not attributes of registered
+modules) to be executed. Not everybody may want this, this functionality was
+made optional, using a switch in ``load, loads, Pickler.load``.
+
+In practice, the allow_dynamic_objects is used inside load_reduce: if the
+load_reduce's callable is a function constructor (for now, _make_skel_func), a
+``UnpicklingError`` is raised.
+
+
+Alternative
++++++++++++
+
+For this functionality, a new opcode sounds like a reasonable alternative.
 
 
 Global variables handling
@@ -265,22 +313,8 @@ conflicts with the current globals of the already existing shared namespace. In
 this situation, should the globals of the function be overriden, or should the
 globals of the current module be overriden instead?
 
-The two solutions are backed with valid use-cases:
-
-* in the ``multiprocessing`` community, it may be preferable in some cases to
-  prioritize existing globals over globals carried by new objects, as workers
-  need to have a *state*
-* however, this may seem like an unexpected behavior, as reported in many
-  issues. [#cloudpickle-gh-214]_
-
-We could let the user decide for for wich behavior to user, by adding a switch,
-either at unpickling time or at pickling time. A Pull Request
-[#cloudpickle-gh-216]_ implementing this is currently under review in
-``cloudpickle``. As hardcoding the switch in the pickle string is easier than
-branching the behavior of an unpickler, the switch was implemented at pickling
-time.
-
-
+In the current code, the priority is given to new global variables, that will
+override existing ones if collision happen at unpickling time.t
 
 .. rubric:: Footnotes
 
